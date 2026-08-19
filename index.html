@@ -275,12 +275,12 @@
 
     <!-- FOOTER INFO -->
     <footer class="w-full z-30 px-6 py-2 glass-panel border-t border-slate-800 text-center text-xs text-slate-500 flex justify-between items-center">
-        <span>キー操作: [A S D F G H J K L ;] キー または タッチ操作</span>
-        <span>PROSEKA SIMULATOR v2.0</span>
+        <span>キー操作: [ D ] [ F ] [ J ] [ K ] または 画面下部4エリアをタップ</span>
+        <span>PROSEKA SIMULATOR v3.0 (4-LANES EDITION)</span>
     </footer>
 
     <script>
-        // Audio Synthesizer Engine for procedural Vocaloid-style songs
+        // Audio Synthesizer Engine with procedural Famous Vocaloid Melodies
         class SoundEngine {
             constructor() {
                 this.ctx = null;
@@ -288,26 +288,31 @@
             }
 
             init() {
-                if (this.ctx) return;
+                if (this.ctx) {
+                    if (this.ctx.state === 'suspended') {
+                        this.ctx.resume();
+                    }
+                    return;
+                }
                 const AudioCtx = window.AudioContext || window.webkitAudioContext;
                 this.ctx = new AudioCtx();
                 this.masterGain = this.ctx.createGain();
-                this.masterGain.gain.value = 0.4;
+                this.masterGain.gain.value = 0.35;
                 this.masterGain.connect(this.ctx.destination);
             }
 
-            // Play Synth Tap Feedback Sound
+            // Play Tap Feedback SFX
             playTapSound(isCritical = false) {
                 if (!this.ctx) return;
                 const osc = this.ctx.createOscillator();
                 const gain = this.ctx.createGain();
                 
                 osc.type = isCritical ? 'triangle' : 'sine';
-                osc.frequency.setValueAtTime(isCritical ? 1200 : 800, this.ctx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(100, this.ctx.currentTime + 0.08);
+                osc.frequency.setValueAtTime(isCritical ? 1320 : 880, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(110, this.ctx.currentTime + 0.08);
 
-                gain.gain.setValueAtTime(isCritical ? 0.6 : 0.4, this.ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+                gain.gain.setValueAtTime(isCritical ? 0.5 : 0.3, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.08);
 
                 osc.connect(gain);
                 gain.connect(this.masterGain);
@@ -316,54 +321,119 @@
                 osc.stop(this.ctx.currentTime + 0.08);
             }
 
-            // Synthesize Music Track in Realtime
-            playNoteTone(freq, duration = 0.15, type = 'sawtooth') {
+            // Synthesize melody notes dynamically for current song
+            playMelodyNote(freq, duration = 0.12, waveType = 'sawtooth', volume = 0.15) {
+                if (!this.ctx || !freq) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = waveType;
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+
+                    gain.gain.setValueAtTime(volume, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+
+                    osc.connect(gain);
+                    gain.connect(this.masterGain);
+
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration);
+                } catch(e) {}
+            }
+
+            // Play Drum / Percussion Beat
+            playBeat(type = 'kick') {
                 if (!this.ctx) return;
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = type;
-                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-
-                gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
-
-                osc.connect(gain);
-                gain.connect(this.masterGain);
-
-                osc.start();
-                osc.stop(this.ctx.currentTime + duration);
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    
+                    if (type === 'kick') {
+                        osc.frequency.setValueAtTime(150, this.ctx.currentTime);
+                        osc.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.1);
+                        gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.1);
+                    } else if (type === 'snare') {
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(300, this.ctx.currentTime);
+                        osc.frequency.exponentialRampToValueAtTime(80, this.ctx.currentTime + 0.08);
+                        gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+                    }
+                    osc.connect(gain);
+                    gain.connect(this.masterGain);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.1);
+                } catch(e) {}
             }
         }
 
         const sound = new SoundEngine();
 
+        // Famous Vocaloid Songs with Note Pitch Sequences (in Hz)
         const SONGS = [
             {
-                id: 'tell_your_world',
-                title: 'ネギ色ワンダーランド',
-                artist: 'kz (livetune) feat. 初音ミク',
+                id: 'senbonzakura',
+                title: '千本桜',
+                artist: '黒うさP feat. 初音ミク',
                 category: 'Vocaloid',
-                bpm: 150,
+                bpm: 154,
+                jacket: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=500&auto=format&fit=crop&q=60',
+                color: '#ff0844',
+                // Fm Melody Sequence (Hz)
+                melody: [349, 392, 415, 523, 466, 415, 392, 349, 311, 349, 415, 466, 523, 622, 523, 466]
+            },
+            {
+                id: 'melt',
+                title: 'メルト',
+                artist: 'ryo (supercell) feat. 初音ミク',
+                category: 'Vocaloid',
+                bpm: 170,
                 jacket: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&auto=format&fit=crop&q=60',
-                color: '#00f2fe'
+                color: '#00f2fe',
+                // Eb Major Melody Sequence
+                melody: [311, 349, 392, 415, 392, 349, 311, 261, 311, 392, 466, 523, 466, 392]
             },
             {
-                id: 'night_sky',
-                title: 'プロジェクト・ナイトスカイ',
-                artist: 'Mitchie M feat. 初音ミク & 鏡音リン',
-                category: '25時、ナイトコードで。',
-                bpm: 138,
-                jacket: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=500&auto=format&fit=crop&q=60',
-                color: '#a855f7'
-            },
-            {
-                id: 'cyber_core',
-                title: 'エンドレス・サイバーコア',
-                artist: 'CosMo@暴走P feat. 初音ミク',
-                category: 'Vivid BAD SQUAD',
-                bpm: 185,
+                id: 'shoushitsu',
+                title: '初音ミクの消失',
+                artist: 'cosMo@暴走P feat. 初音ミク',
+                category: 'Vocaloid',
+                bpm: 240,
                 jacket: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&auto=format&fit=crop&q=60',
-                color: '#ff0844'
+                color: '#a855f7',
+                // Rapid 16th note sequence
+                melody: [440, 493, 523, 587, 659, 698, 659, 587, 523, 493, 440, 392, 440, 523]
+            },
+            {
+                id: 'king',
+                title: 'KING',
+                artist: 'Kanaria feat. GUMI',
+                category: 'Wonderlands x Showtime',
+                bpm: 162,
+                jacket: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=500&auto=format&fit=crop&q=60',
+                color: '#eab308',
+                melody: [311, 311, 349, 370, 349, 311, 277, 311, 370, 415, 370, 311]
+            },
+            {
+                id: 'charles',
+                title: 'シャルル',
+                artist: 'バルーン feat. v4 flower',
+                category: '25時、ナイトコードで。',
+                bpm: 145,
+                jacket: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=500&auto=format&fit=crop&q=60',
+                color: '#ec4899',
+                melody: [370, 415, 440, 493, 440, 415, 370, 329, 370, 440, 493, 554]
+            },
+            {
+                id: 'tell_your_world',
+                title: 'Tell Your World',
+                artist: 'kz (livetune) feat. 初音ミク',
+                category: 'MORE MORE JUMP!',
+                bpm: 150,
+                jacket: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=500&auto=format&fit=crop&q=60',
+                color: '#3b82f6',
+                melody: [329, 370, 415, 493, 554, 493, 415, 370, 329, 415, 493, 659]
             }
         ];
 
@@ -394,12 +464,14 @@
 
                 this.counts = { PERFECT: 0, GREAT: 0, GOOD: 0, BAD: 0, MISS: 0 };
 
-                // 12 Lane system mapped to perspective
-                this.laneCount = 12;
+                // Strictly 4 Lanes
+                this.laneCount = 4;
+                this.lastPlayedNoteIdx = -1;
 
                 this.resize();
                 window.addEventListener('resize', () => this.resize());
                 this.bindEvents();
+                this.setupTouchOverlay();
             }
 
             resize() {
@@ -409,38 +481,131 @@
                 this.bgCanvas.height = window.innerHeight;
             }
 
+            setupTouchOverlay() {
+                const container = document.getElementById('touch-lane-container');
+                container.innerHTML = '';
+                // 4 Interactive Touch Columns
+                const keyLabels = ['D', 'F', 'J', 'K'];
+                for (let i = 0; i < 4; i++) {
+                    const laneDiv = document.createElement('div');
+                    laneDiv.className = 'flex-1 h-full border-r border-cyan-500/10 flex items-end justify-center pb-4 active:bg-cyan-500/20 transition-colors cursor-pointer select-none';
+                    laneDiv.innerHTML = `<span class="text-xs font-black px-2 py-1 bg-slate-800/80 rounded border border-slate-700 text-cyan-300 pointer-events-none">${keyLabels[i]}</span>`;
+                    
+                    const triggerHit = (e) => {
+                        e.preventDefault();
+                        if (this.isPlaying) {
+                            this.handleHit(i);
+                        }
+                    };
+
+                    laneDiv.addEventListener('pointerdown', triggerHit);
+                    container.appendChild(laneDiv);
+                }
+            }
+
+            // Generate chart matching 4-lanes and selected difficulty
             generateChart() {
                 this.notes = [];
                 const bpm = this.currentSong.bpm;
                 const beatSec = 60 / bpm;
-                const duration = 45; // 45 seconds demo
+                const duration = 40; // 40 seconds playable demo
                 let id = 0;
 
-                const noteTypes = ['tap', 'critical', 'flick', 'hold'];
+                // Difficulty Parameters
+                let stepDivider = 1; // Default 4th notes
+                let restChance = 0.2;
+                let chordChance = 0.0;
+                let flickChance = 0.15;
+                let holdChance = 0.15;
+                let criticalChance = 0.1;
 
-                for (let time = 2; time < duration; time += beatSec / 2) {
-                    if (Math.random() < 0.2) continue; // rest note
+                switch (this.difficulty) {
+                    case 'EASY':
+                        stepDivider = 1; // 1 note per beat
+                        restChance = 0.45;
+                        chordChance = 0.0;
+                        flickChance = 0.0;
+                        holdChance = 0.1;
+                        criticalChance = 0.05;
+                        break;
+                    case 'NORMAL':
+                        stepDivider = 2; // 8th notes
+                        restChance = 0.35;
+                        chordChance = 0.05;
+                        flickChance = 0.1;
+                        holdChance = 0.15;
+                        criticalChance = 0.1;
+                        break;
+                    case 'HARD':
+                        stepDivider = 2; // 8th notes dense
+                        restChance = 0.15;
+                        chordChance = 0.15;
+                        flickChance = 0.2;
+                        holdChance = 0.2;
+                        criticalChance = 0.15;
+                        break;
+                    case 'EXPERT':
+                        stepDivider = 4; // 16th notes
+                        restChance = 0.25;
+                        chordChance = 0.25;
+                        flickChance = 0.25;
+                        holdChance = 0.15;
+                        criticalChance = 0.2;
+                        break;
+                    case 'MASTER':
+                        stepDivider = 4; // 16th notes stream
+                        restChance = 0.1;
+                        chordChance = 0.35;
+                        flickChance = 0.3;
+                        holdChance = 0.2;
+                        criticalChance = 0.25;
+                        break;
+                }
 
-                    const lane = Math.floor(Math.random() * 9); // lane offset 0..8
-                    const width = Math.floor(Math.random() * 3) + 2; // lane width 2..4
-                    
+                const stepSec = beatSec / stepDivider;
+                let melodyIdx = 0;
+
+                for (let time = 2.0; time < duration; time += stepSec) {
+                    if (Math.random() < restChance) continue;
+
+                    // Primary Lane
+                    const lane = Math.floor(Math.random() * 4);
+                    const pitchFreq = this.currentSong.melody[melodyIdx % this.currentSong.melody.length];
+                    melodyIdx++;
+
                     let type = 'tap';
                     const rand = Math.random();
-                    if (rand > 0.8) type = 'critical';
-                    else if (rand > 0.65) type = 'flick';
-                    else if (rand > 0.5) type = 'hold';
+                    if (rand < criticalChance) type = 'critical';
+                    else if (rand < criticalChance + flickChance) type = 'flick';
+                    else if (rand < criticalChance + flickChance + holdChance) type = 'hold';
 
-                    const note = {
+                    this.notes.push({
                         id: id++,
                         time: time,
                         lane: lane,
-                        width: width,
+                        width: 1, // Always 1 lane wide in 4-lane mode
                         type: type,
-                        length: type === 'hold' ? beatSec * (Math.random() > 0.5 ? 1 : 2) : 0,
+                        freq: pitchFreq,
+                        length: type === 'hold' ? stepSec * (Math.floor(Math.random() * 3) + 2) : 0,
                         hit: false,
                         missed: false
-                    };
-                    this.notes.push(note);
+                    });
+
+                    // Simultaneous Chord Notes for HARD / EXPERT / MASTER
+                    if (Math.random() < chordChance) {
+                        const secondLane = (lane + Math.floor(Math.random() * 3) + 1) % 4;
+                        this.notes.push({
+                            id: id++,
+                            time: time,
+                            lane: secondLane,
+                            width: 1,
+                            type: Math.random() > 0.5 ? 'tap' : 'critical',
+                            freq: pitchFreq * 1.25, // Third/Fifth harmony
+                            length: 0,
+                            hit: false,
+                            missed: false
+                        });
+                    }
                 }
             }
 
@@ -453,6 +618,7 @@
                 this.maxCombo = 0;
                 this.health = 1000;
                 this.counts = { PERFECT: 0, GREAT: 0, GOOD: 0, BAD: 0, MISS: 0 };
+                this.lastPlayedNoteIdx = -1;
 
                 this.isPlaying = true;
                 this.startTime = performance.now();
@@ -466,33 +632,22 @@
             }
 
             bindEvents() {
-                // Keyboard Bindings for 12 Lanes
-                const keyMap = ['KeyA', 'KeyS', 'KeyD', 'KeyF', 'KeyG', 'KeyH', 'KeyJ', 'KeyK', 'KeyL', 'Semicolon'];
+                // Keyboard Bindings for 4 Lanes: [D] [F] [J] [K]
+                const keyMap = ['KeyD', 'KeyF', 'KeyJ', 'KeyK'];
                 
                 window.addEventListener('keydown', (e) => {
-                    if (!this.isPlaying) return;
-                    const idx = keyMap.indexOf(e.code);
-                    if (idx !== -1) {
-                        const lane = Math.floor((idx / keyMap.length) * 10);
+                    if (!this.isPlaying || e.repeat) return;
+                    const lane = keyMap.indexOf(e.code);
+                    if (lane !== -1) {
                         this.handleHit(lane);
                     }
-                });
-
-                // Touch & Mouse Handling
-                const touchZone = document.getElementById('touch-lane-container');
-                touchZone.addEventListener('pointerdown', (e) => {
-                    if (!this.isPlaying) return;
-                    const rect = touchZone.getBoundingClientRect();
-                    const x = e.clientX - rect.left;
-                    const lane = Math.floor((x / rect.width) * 12);
-                    this.handleHit(lane);
                 });
             }
 
             handleHit(lane) {
-                // Find target note
-                const hitWindow = 0.16; // 160ms
-                const note = this.notes.find(n => !n.hit && !n.missed && Math.abs(n.time - this.currentTime) <= hitWindow && Math.abs(n.lane - lane) <= 2);
+                const hitWindow = 0.16; // 160ms window
+                // Find matching note in lane
+                const note = this.notes.find(n => !n.hit && !n.missed && Math.abs(n.time - this.currentTime) <= hitWindow && n.lane === lane);
 
                 if (note) {
                     const diff = Math.abs(note.time - this.currentTime);
@@ -504,8 +659,8 @@
                     note.hit = true;
                     this.processRating(rating, note);
                 } else {
-                    // Tap effect on lane
-                    this.spawnLaneEffect(lane, 2, '#00f2fe');
+                    // Tap effect on lane (Empty tap)
+                    this.spawnLaneEffect(lane, 1, '#00f2fe');
                     sound.playTapSound(false);
                 }
             }
@@ -519,8 +674,18 @@
                     const basePts = note.type === 'critical' ? 1000 : 700;
                     this.score += basePts + (rating === 'PERFECT' ? 300 : 100);
                     this.health = Math.min(1000, this.health + 10);
+                    
                     sound.playTapSound(note.type === 'critical');
-                    this.spawnLaneEffect(note.lane, note.width, note.type === 'critical' ? '#ffd700' : '#00f2fe');
+                    // Play melody synth pitch note
+                    sound.playMelodyNote(note.freq, 0.15, note.type === 'critical' ? 'triangle' : 'sawtooth', 0.2);
+
+                    const colorMap = {
+                        critical: '#ffd700',
+                        flick: '#ff0844',
+                        hold: '#22c55e',
+                        tap: '#00f2fe'
+                    };
+                    this.spawnLaneEffect(note.lane, 1, colorMap[note.type] || '#00f2fe');
                 } else if (rating === 'GOOD') {
                     this.combo = 0;
                     this.score += 300;
@@ -553,7 +718,6 @@
                     el.classList.remove('scale-125');
                 }, 100);
 
-                // Update combo display
                 const comboNum = document.getElementById('combo-num');
                 const comboContainer = document.getElementById('combo-container');
                 if (this.combo > 2) {
@@ -569,10 +733,9 @@
                 document.getElementById('health-val').innerText = this.health;
                 document.getElementById('health-bar').style.width = `${(this.health / 1000) * 100}%`;
 
-                // Calculate Rank
                 const rankEl = document.getElementById('game-rank');
-                if (this.score > 80000) rankEl.innerText = 'S';
-                else if (this.score > 50000) rankEl.innerText = 'A';
+                if (this.score > 70000) rankEl.innerText = 'S';
+                else if (this.score > 45000) rankEl.innerText = 'A';
                 else if (this.score > 20000) rankEl.innerText = 'B';
                 else rankEl.innerText = 'C';
             }
@@ -582,12 +745,11 @@
                     lane, width, color, opacity: 1.0, life: 1.0
                 });
 
-                // Spawn splash particles
-                for (let i = 0; i < 12; i++) {
+                for (let i = 0; i < 10; i++) {
                     this.particles.push({
-                        x: (lane + width / 2) / 12,
+                        x: (lane + 0.5) / 4,
                         y: 0.85,
-                        vx: (Math.random() - 0.5) * 0.015,
+                        vx: (Math.random() - 0.5) * 0.02,
                         vy: -Math.random() * 0.02 - 0.005,
                         size: Math.random() * 6 + 2,
                         color: color,
@@ -601,12 +763,25 @@
 
                 this.currentTime = (timestamp - this.startTime) / 1000;
 
-                // Simple Synth Music Player Trigger
-                if (Math.floor(this.currentTime * 8) % 2 === 0 && Math.random() < 0.3) {
-                    sound.playNoteTone(300 + (Math.sin(this.currentTime * 5) * 200));
+                // Play Audio Background Drums & Song Melody synchronized with time
+                const beatSec = 60 / this.currentSong.bpm;
+                const currentBeatStep = Math.floor(this.currentTime / (beatSec / 2));
+                
+                if (currentBeatStep > this.lastPlayedNoteIdx) {
+                    this.lastPlayedNoteIdx = currentBeatStep;
+                    // Play rhythm kick/snare
+                    if (currentBeatStep % 2 === 0) {
+                        sound.playBeat('kick');
+                    } else {
+                        sound.playBeat('snare');
+                    }
+
+                    // Background backing chord / melody playback if autoplay or ambient
+                    const melodyNote = this.currentSong.melody[currentBeatStep % this.currentSong.melody.length];
+                    sound.playMelodyNote(melodyNote, 0.12, 'sine', 0.08);
                 }
 
-                // Autoplay Check
+                // Autoplay Mode Logic
                 if (this.isAutoplay) {
                     this.notes.forEach(n => {
                         if (!n.hit && !n.missed && n.time <= this.currentTime) {
@@ -624,14 +799,12 @@
                     }
                 });
 
-                // Render Background Particles
+                // Render Visuals
                 this.renderBackground();
-
-                // Render 3D Perspective Rhythm Lane
                 this.renderRhythmBoard();
 
-                // Check Stage End
-                if (this.currentTime > 46) {
+                // Stage End Check
+                if (this.currentTime > 41) {
                     this.finishGame();
                     return;
                 }
@@ -644,8 +817,7 @@
                 const h = this.bgCanvas.height;
                 this.bgCtx.clearRect(0, 0, w, h);
 
-                // Cosmic Blue/Pink Radial Gradient
-                const grad = this.bgCtx.createRadialGradient(w / 2, h / 2, 100, w / 2, h / 2, w);
+                const grad = this.bgCtx.createRadialGradient(w / 2, h / 2, 80, w / 2, h / 2, w);
                 grad.addColorStop(0, '#0f172a');
                 grad.addColorStop(0.5, '#090a16');
                 grad.addColorStop(1, '#020617');
@@ -661,15 +833,15 @@
                 // Perspective Lane Coordinates
                 const topY = h * 0.25;
                 const bottomY = h * 0.85;
-                const topWidth = w * 0.25;
-                const bottomWidth = w * 0.85;
+                const topWidth = Math.min(w * 0.35, 300);
+                const bottomWidth = Math.min(w * 0.85, 700);
 
                 const topX1 = (w - topWidth) / 2;
                 const topX2 = (w + topWidth) / 2;
                 const botX1 = (w - bottomWidth) / 2;
                 const botX2 = (w + bottomWidth) / 2;
 
-                // 1. Draw Lane Floor Background (Trapezoid)
+                // 1. Draw 4-Lane Board Background
                 this.ctx.beginPath();
                 this.ctx.moveTo(topX1, topY);
                 this.ctx.lineTo(topX2, topY);
@@ -679,28 +851,38 @@
 
                 const laneGrad = this.ctx.createLinearGradient(0, topY, 0, bottomY);
                 laneGrad.addColorStop(0, 'rgba(15, 23, 42, 0.4)');
-                laneGrad.addColorStop(1, 'rgba(0, 242, 254, 0.15)');
+                laneGrad.addColorStop(1, 'rgba(0, 242, 254, 0.18)');
                 this.ctx.fillStyle = laneGrad;
                 this.ctx.fill();
-                this.ctx.strokeStyle = 'rgba(0, 242, 254, 0.5)';
-                this.ctx.lineWidth = 2;
+                this.ctx.strokeStyle = 'rgba(0, 242, 254, 0.6)';
+                this.ctx.lineWidth = 3;
                 this.ctx.stroke();
 
-                // 2. Draw 12 Lane Grid Lines
-                for (let i = 0; i <= 12; i++) {
-                    const ratio = i / 12;
+                // 2. Draw 4 Lane Dividers & Key Hints
+                const keyHints = ['D', 'F', 'J', 'K'];
+                for (let i = 0; i <= 4; i++) {
+                    const ratio = i / 4;
                     const tx = topX1 + (topX2 - topX1) * ratio;
                     const bx = botX1 + (botX2 - botX1) * ratio;
 
                     this.ctx.beginPath();
                     this.ctx.moveTo(tx, topY);
                     this.ctx.lineTo(bx, bottomY);
-                    this.ctx.strokeStyle = i === 0 || i === 12 ? '#00f2fe' : 'rgba(255, 255, 255, 0.1)';
-                    this.ctx.lineWidth = i === 0 || i === 12 ? 3 : 1;
+                    this.ctx.strokeStyle = i === 0 || i === 4 ? '#00f2fe' : 'rgba(255, 255, 255, 0.25)';
+                    this.ctx.lineWidth = i === 0 || i === 4 ? 3 : 1.5;
                     this.ctx.stroke();
+
+                    // Key Guide Text on Judgment line
+                    if (i < 4) {
+                        const midBx = botX1 + (botX2 - botX1) * ((i + 0.5) / 4);
+                        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+                        this.ctx.font = 'bold 18px Zen Maru Gothic';
+                        this.ctx.textAlign = 'center';
+                        this.ctx.fillText(keyHints[i], midBx, bottomY + 28);
+                    }
                 }
 
-                // 3. Draw Judgment Line (Bottom Target Bar)
+                // 3. Judgment Line
                 const judgeGrad = this.ctx.createLinearGradient(botX1, bottomY, botX2, bottomY);
                 judgeGrad.addColorStop(0, '#00f2fe');
                 judgeGrad.addColorStop(0.5, '#ffffff');
@@ -716,10 +898,9 @@
                 this.ctx.stroke();
                 this.ctx.shadowBlur = 0;
 
-                // Helper: Project 3D Time Progress (0=top, 1=judgment line) to Canvas Y/X
+                // Projection Helper
                 const project = (laneRatio, timeRatio) => {
-                    // Non-linear depth curve for natural perspective
-                    const p = Math.pow(timeRatio, 1.8);
+                    const p = Math.pow(timeRatio, 1.7); // Perspective Depth
                     const currentTopX = topX1 + (topX2 - topX1) * laneRatio;
                     const currentBotX = botX1 + (botX2 - botX1) * laneRatio;
                     
@@ -729,13 +910,13 @@
                 };
 
                 // 4. Render Active Lane Hit Effects
-                this.effects.forEach((ef, idx) => {
+                this.effects.forEach((ef) => {
                     ef.opacity -= 0.05;
                     if (ef.opacity > 0) {
-                        const p1 = project(ef.lane / 12, 1.0);
-                        const p2 = project((ef.lane + ef.width) / 12, 1.0);
-                        const topP1 = project(ef.lane / 12, 0.7);
-                        const topP2 = project((ef.lane + ef.width) / 12, 0.7);
+                        const p1 = project(ef.lane / 4, 1.0);
+                        const p2 = project((ef.lane + 1) / 4, 1.0);
+                        const topP1 = project(ef.lane / 4, 0.65);
+                        const topP2 = project((ef.lane + 1) / 4, 0.65);
 
                         this.ctx.beginPath();
                         this.ctx.moveTo(topP1.x, topP1.y);
@@ -743,14 +924,14 @@
                         this.ctx.lineTo(p2.x, p2.y);
                         this.ctx.lineTo(p1.x, p1.y);
                         this.ctx.fillStyle = ef.color;
-                        this.ctx.globalAlpha = ef.opacity * 0.4;
+                        this.ctx.globalAlpha = ef.opacity * 0.45;
                         this.ctx.fill();
                         this.ctx.globalAlpha = 1.0;
                     }
                 });
 
                 // 5. Render Notes
-                const timeWindow = 2.0 / (this.hiSpeed / 8.0); // Speed modifier
+                const timeWindow = 2.0 / (this.hiSpeed / 8.0);
 
                 this.notes.forEach(note => {
                     if (note.hit || note.missed) return;
@@ -758,19 +939,17 @@
                     const timeDiff = note.time - this.currentTime;
                     if (timeDiff > timeWindow || timeDiff < -0.2) return;
 
-                    // Progress: 0 at top, 1 at judgment line
                     const progress = 1 - (timeDiff / timeWindow);
                     if (progress < 0 || progress > 1.1) return;
 
-                    const l1 = note.lane / 12;
-                    const l2 = (note.lane + note.width) / 12;
+                    const l1 = note.lane / 4;
+                    const l2 = (note.lane + 1) / 4;
 
                     const p1 = project(l1, progress);
                     const p2 = project(l2, progress);
 
-                    const noteHeight = 12 * Math.pow(progress, 1.5);
+                    const noteHeight = 14 * Math.pow(progress, 1.5);
 
-                    // Note Styling according to Type
                     let mainColor = '#00f2fe';
                     let borderColor = '#ffffff';
 
@@ -785,7 +964,7 @@
                         borderColor = '#86efac';
                     }
 
-                    // Draw Hold Trail line if Hold Note
+                    // Render Hold Trail
                     if (note.type === 'hold' && note.length > 0) {
                         const holdEndProgress = 1 - ((note.time + note.length - this.currentTime) / timeWindow);
                         const hp1 = project(l1, Math.max(0, holdEndProgress));
@@ -802,28 +981,29 @@
                         this.ctx.stroke();
                     }
 
-                    // Render Base Bar Note
+                    // Draw Note Box
                     this.ctx.beginPath();
-                    this.ctx.rect(p1.x, p1.y - noteHeight / 2, p2.x - p1.x, noteHeight);
+                    this.ctx.rect(p1.x + 2, p1.y - noteHeight / 2, (p2.x - p1.x) - 4, noteHeight);
                     this.ctx.fillStyle = mainColor;
                     this.ctx.shadowColor = mainColor;
-                    this.ctx.shadowBlur = 10;
+                    this.ctx.shadowBlur = 12;
                     this.ctx.fill();
                     this.ctx.lineWidth = 2;
                     this.ctx.strokeStyle = borderColor;
                     this.ctx.stroke();
                     this.ctx.shadowBlur = 0;
 
-                    // Render Flick Arrow Icon
+                    // Flick Arrow Indicator
                     if (note.type === 'flick') {
                         this.ctx.fillStyle = '#ffffff';
-                        this.ctx.font = 'bold 16px sans-serif';
+                        this.ctx.font = 'bold 18px sans-serif';
                         this.ctx.textAlign = 'center';
                         this.ctx.fillText('▲', (p1.x + p2.x) / 2, p1.y - noteHeight);
                     }
                 });
 
-                this.particles.forEach((pt, idx) => {
+                // Splash Particles
+                this.particles.forEach((pt) => {
                     pt.x += pt.vx;
                     pt.y += pt.vy;
                     pt.life -= 0.03;
@@ -841,7 +1021,6 @@
                     }
                 });
 
-                // Filter dead particles
                 this.particles = this.particles.filter(p => p.life > 0);
             }
 
@@ -862,19 +1041,16 @@
                 document.getElementById('res-bad').innerText = this.counts.BAD;
                 document.getElementById('res-miss').innerText = this.counts.MISS;
 
-                // Rank
                 let rank = 'C';
-                if (this.score > 80000) rank = 'S';
-                else if (this.score > 50000) rank = 'A';
+                if (this.score > 70000) rank = 'S';
+                else if (this.score > 45000) rank = 'A';
                 else if (this.score > 20000) rank = 'B';
                 document.getElementById('result-rank').innerText = rank;
             }
         }
 
-        // Initialize Engine
         const engine = new ProsekaEngine();
 
-        // Navigation Logic
         const screens = {
             title: document.getElementById('screen-title'),
             select: document.getElementById('screen-select'),
@@ -891,7 +1067,6 @@
             screens[target].classList.add('flex');
         }
 
-        // Populate Song List
         function renderSongList() {
             const container = document.getElementById('song-list');
             container.innerHTML = '';
@@ -906,7 +1081,7 @@
 
                 card.innerHTML = `
                     <div class="flex items-center gap-3">
-                        <img src="${song.jacket}" class="w-12 h-12 rounded-lg object-cover" alt="Jacket">
+                        <img src="${song.jacket}" class="w-12 h-12 rounded-lg object-cover shadow-md" alt="Jacket">
                         <div>
                             <h4 class="font-bold text-white text-sm">${song.title}</h4>
                             <p class="text-xs text-slate-400">${song.artist}</p>
@@ -954,7 +1129,6 @@
             showScreen('select');
         });
 
-        // Speed adjustment
         document.getElementById('speed-up').addEventListener('click', () => {
             engine.hiSpeed = Math.min(12.0, +(engine.hiSpeed + 0.1).toFixed(1));
             document.getElementById('speed-val').innerText = engine.hiSpeed;
@@ -965,16 +1139,14 @@
             document.getElementById('speed-val').innerText = engine.hiSpeed;
         });
 
-        // Autoplay Toggle
         document.getElementById('autoplay-toggle').addEventListener('change', (e) => {
             engine.isAutoplay = e.target.checked;
         });
 
-        // Difficulty Buttons
         document.querySelectorAll('.diff-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('ring-2', 'ring-white'));
-                btn.classList.add('ring-2', 'ring-white');
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('ring-2', 'ring-white', 'scale-105'));
+                btn.classList.add('ring-2', 'ring-white', 'scale-105');
                 engine.difficulty = btn.dataset.diff;
             });
         });
